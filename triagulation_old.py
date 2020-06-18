@@ -4,6 +4,10 @@ import scipy.spatial as spatial
 import triangle as tr
 import cv2
 
+import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 #Helper Functions
 
 #Calculates the accuracy of the PSLG
@@ -40,11 +44,21 @@ def CalculateAccuracy(img, coords, points, line_segments):
         if(intersections % 2 != 1):
             continue
 
-        img[c[0],c[1]] = [0,0,0]
+        # img[c[0],c[1]] = [0,0,0]
         score += 1
+
     return score
 
-
+def ThreadedCalculateAccuracy(img, coords, points, line_segments, numThreads):
+    results = []
+    with ThreadPoolExecutor(max_workers=numThreads) as executor:
+        chunks = np.array_split(coords,numThreads)
+        results = executor.map(CalculateAccuracy,[img]*numThreads,chunks,[points]*numThreads, [line_segments]*numThreads)
+    
+    score = 0
+    for value in results:
+        score += value
+    return score
 
 def GetIntersections():
     print("")
@@ -56,6 +70,9 @@ fileName = "test_files/colors.png"
 img = cv2.imread(fileName) #(row, column) order
 unique_color_data = np.unique(img.reshape((1, -1, 3))[0,:],axis=0, return_counts=True)
 blacklist = np.array([[255,255,255], [0,0,0]]) #NOTE, cv2 has pixels in bgr order
+
+#testing purposes
+startTime = time.time()
 
 for color in unique_color_data[0]:
     #Skips Colors On Blacklist
@@ -72,15 +89,67 @@ for color in unique_color_data[0]:
     line_segments = [(0,1),(0,2),(1,2)]
 
     #rng trial
+    # rng = np.random.randint(0,area,size=3)
+    # for i in range(len(rng)):
+    #     points.append((coords[rng[i]][0],coords[rng[i]][1]))
+
+    #rng iterative brute force
     rng = np.random.randint(0,area,size=3)
     for i in range(len(rng)):
-        points.append((coords[rng[i]][0],coords[rng[i]][1]))
+        points.append([coords[rng[i]][0],coords[rng[i]][1]])
+
+    iterations = 3
+    for i in range(iterations):
+        iterationTime = time.time()
+        rng = np.random.randint(0,3)
+        point = points[rng]
+        # score = CalculateAccuracy(img, coords, points, line_segments)
+        score = ThreadedCalculateAccuracy(img, coords, points, line_segments, 20)
+        points.pop(rng)
+        for c in coords:
+            if((c == points[0]).all() or (c == points[1]).all()):
+                continue
+            points.append(c)
+            # temp_score = CalculateAccuracy(img, coords, points, line_segments)
+            temp_score = ThreadedCalculateAccuracy(img, coords, points, line_segments, 10)
+            if(temp_score > score):
+                point = c
+                score = temp_score
+            #   
+            points.pop()
+        points.append(point)
+        # print(points)
+        print(score/area)
+        print("iteration_time: %f"%(time.time() - iterationTime))
+        print("total_time: %f"%(time.time() - startTime))
+
+    #brute force trial *never finishes*
+    # points = []
+    # score = 0
+    # for c1 in coords:
+    #     for c2 in coords:
+    #         if((c2 == c1).all()):
+    #             continue
+    #         for c3 in coords:
+    #             if((c3 == c1).all() or (c3 == c2).all()):
+    #                 continue
+    #             temp_points = [c1,c2,c3]
+    #             temp_score = CalculateAccuracy(img, coords, temp_points, line_segments)
+    #             if(temp_score > score):
+    #                 score = temp_score
+    #                 points = temp_points
 
     # calculate scores
-    score = CalculateAccuracy(img, coords, points, line_segments)
+    # score = CalculateAccuracy(img, coords, points, line_segments)
+    # score = ThreadedCalculateAccuracy(img, coords, points, line_segments, 16)
+    print("%s : %f" % (color, score/area))
 
     for p in points:
         img[p[0],p[1]] = [255,255,255]
+
+#random-no-threading: .05
+print("time: %f"%(time.time() - startTime))
+
 
 cv2.imshow("image", img)
 cv2.waitKey(0)
