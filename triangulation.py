@@ -35,8 +35,9 @@ for index in np.ndindex(img.shape[:-1]):
         color_key = ",".join(["%d"%value for value in img[index]])
 
         #dict entry creation
+        #TODO more efficient
         if(not color_key in edge_dict):
-            edge_dict[color_key] = [[index]]
+            edge_dict[color_key] = []
             continue
 
         #adding to edge list
@@ -49,20 +50,51 @@ for index in np.ndindex(img.shape[:-1]):
                 edge_list.insert(0, index)
                 edge_list_indexes_to_merge.append(edge_list_index)
 
+        if(len(edge_list_indexes_to_merge) == 0):
+            edge_dict[color_key].append([index])
+        elif(len(edge_list_indexes_to_merge) == 2):
+            if(color_key == "36,28,237"):
+                print(index)
+            merged_edge_list = edge_dict[color_key][edge_list_indexes_to_merge[0]]
+            if(merged_edge_list[0] == index):
+                merged_edge_list.reverse() #flips list to be [..., index]
+
+            other_edge_list = edge_dict[color_key][edge_list_indexes_to_merge[1]]
+            if(other_edge_list[-1] == index):
+                other_edge_list.reverse() #flips list to be [index, ...]
+            other_edge_list.pop(0)
+
+            merged_edge_list.extend(other_edge_list)
+            edge_dict[color_key].pop(edge_list_indexes_to_merge[1])
+
+        elif(len(edge_list_indexes_to_merge) > 2):
+            print("Image Is Not Properly Formatted")
+            break
+
+
+
         #merge list
         # if(len(edge_list) > 1):
         #     print(color_key) #TODO
 
 #debugging
 for color_key in edge_dict.keys():
-    if(color_key == "255,255,255"):
-        continue
-    print(color_key)
+    # if(color_key == "255,255,255"):
+    #     continue
+    # if(color_key != "36,28,237"):
+    #     continue
+
+    j = 0 
     for edge_list in edge_dict[color_key]:
         i = 0
+        # if(j == 1):
+        #     continue
+        # j += 1
+        # print(edge_list)
+        # print(len(edge_dict[color_key]))
         for edge in edge_list:
             img[edge] = [i,i,i]
-            i += 5
+            i += 4
     
 
 cv2.imwrite("output.png", img)
