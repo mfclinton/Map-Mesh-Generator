@@ -99,6 +99,10 @@ def PlotLines(img, points, lines):
         y_1 = int(line_eq(x_1))
         y_2 = int(line_eq(x_2))
         cv2.line(img, (x_1, y_1), (x_2, y_2), [0,0,0])
+
+    # cv2.line(img, (points[-1][1], points[-1][0]), (points[0][1], points[0][0]), [0,0,0])
+
+    
             
 
 def SplitByBestFit(img, edge_dict):
@@ -142,8 +146,8 @@ def SplitByBestFit(img, edge_dict):
             
             # print(lines)
             # print(color_key, " : ", len(lines), " vs ", len(edge_list))
-            if(len(edge_list) == 1):
-                print("error", color_key, edge_list)
+            # if(len(edge_list) == 1):
+            #     print("error", color_key, edge_list)
             PlotLines(img, edge_list, lines)
 
 def ConvertDictToNPArrays(edge_dict):
@@ -253,28 +257,31 @@ for index in np.ndindex(img.shape[:-1]):
             
 
 #debugging
-for color_key in edge_dict.keys():
-    if(color_key == "255,255,255"):
-        continue
-    # if(len(edge_dict[color_key]) < 3):
-    #     continue
-    print(color_key)
-    print(len(edge_dict[color_key]))
-    j = -1
-    for edge_list in edge_dict[color_key]:
-        j += 1
-        if(not j == 1):
-            continue
-        print(len(edge_list))
-        i = 0
-        # if(j == 1):
-        #     continue
-        # j += 1
-        # print(edge_list)
-        # print(len(edge_dict[color_key]))
-        for edge in edge_list:
-            img[edge] = [127,255-i,255]
-            i += 2
+# frame = 0
+# for color_key in edge_dict.keys():
+#     if(color_key == "255,255,255"):
+#         continue
+#     # if(len(edge_dict[color_key]) < 3):
+#     #     continue
+#     # print(color_key)
+#     # print(len(edge_dict[color_key]))
+#     j = -1
+#     for edge_list in edge_dict[color_key]:
+#         j += 1
+#         # if(not j == 1):
+#         #     continue
+#         # print(len(edge_list))
+#         i = 0
+#         # if(j == 1):
+#         #     continue
+#         # j += 1
+#         # print(edge_list)
+#         # print(len(edge_dict[color_key]))
+#         for edge in edge_list:
+#             img[edge] = [0,0,0]
+#             i += 1
+#             frame += 1
+        
     
 
 cv2.imwrite("output.png", img)
