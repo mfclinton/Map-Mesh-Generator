@@ -8,7 +8,7 @@ import math
 #Helper Functions
 
 #Checks if pixel at index is an edge
-offsets = [(-1,0),(1,0),(0,-1),(0,1)]
+offsets = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]
 def IsEdge(index, img):
     color = img[index]
     for o in offsets:
@@ -21,8 +21,11 @@ def IsEdge(index, img):
     return False
 
 def IsNeighbor(index_a, index_b):
-    total = np.sum(np.abs(np.subtract(index_a,index_b)))
-    return total <= 2
+    difference = np.abs(np.subtract(index_a,index_b))
+    # if(difference[1] + difference[0] <= 1):
+    #     print(difference)
+    return (difference[1] + difference[0] <= 1)
+    # return (difference[1] <= 1 and difference[0] <= 1)
 
 # TODO: Problem, need percentage
 # def LineErrorPtoP(line_segment, points):
@@ -106,8 +109,8 @@ def SplitByBestFit(img, edge_dict):
         # if(color_key != "36,28,237"):
         #     continue
 
-        print(color_key)
-        print(len(edge_dict[color_key]))
+        # print(color_key)
+        # print(len(edge_dict[color_key]))
         for edge_list in edge_dict[color_key]:
             lines = []
             cur_index = 0
@@ -119,7 +122,7 @@ def SplitByBestFit(img, edge_dict):
                     points_contained = (cur_index, index)
                     line_info = GetLineOfBestFit(points_contained, edge_list)
                     r_sqrd = GetRSqred(points_contained, edge_list, line_info)
-                    if(r_sqrd < .9):
+                    if(r_sqrd < .7):
                         lines.append(((cur_index, index - 1), line_info[:2]))
                         cur_index = index - 1
                         line_added = True
@@ -159,16 +162,18 @@ edge_dict = {}
 for index in np.ndindex(img.shape[:-1]):
     if(IsEdge(index, img)):
         color_key = ",".join(["%d"%value for value in img[index]])
-
+        # if(not color_key == "29,230,181"): # REMOVE LATER
+        #     continue
+        # print(index)
         #dict entry creation
         #TODO more efficient
         if(not color_key in edge_dict):
             edge_dict[color_key] = []
-            continue
 
         #adding to edge list
         edge_list_indexes_to_merge = []
         for edge_list_index, edge_list in enumerate(edge_dict[color_key]):
+            # print(edge_list[0], edge_list[-1])
             if(IsNeighbor(index, edge_list[-1])):
                 edge_list.append(index)
                 edge_list_indexes_to_merge.append(edge_list_index)
@@ -179,6 +184,7 @@ for index in np.ndindex(img.shape[:-1]):
         if(len(edge_list_indexes_to_merge) == 0):
             edge_dict[color_key].append([index])
         elif(len(edge_list_indexes_to_merge) == 2):
+            print("MERGE", len(edge_dict[color_key]))
             # if(color_key == "36,28,237"):
             #     print(index)
             merged_edge_list = edge_dict[color_key][edge_list_indexes_to_merge[0]]
@@ -192,15 +198,17 @@ for index in np.ndindex(img.shape[:-1]):
 
             merged_edge_list.extend(other_edge_list)
             edge_dict[color_key].pop(edge_list_indexes_to_merge[1])
+            # print(edge_dict[color_key])
+            print("done", len(edge_dict[color_key]))
 
         elif(len(edge_list_indexes_to_merge) > 2):
             print("Image Is Not Properly Formatted")
             break
 
 #splitting into line segments
-new_img = np.full(img.shape,[255,255,255], np.uint8)
-ConvertDictToNPArrays(edge_dict)
-SplitByBestFit(new_img, edge_dict)
+# new_img = np.full(img.shape,[255,255,255], np.uint8)
+# ConvertDictToNPArrays(edge_dict)
+# SplitByBestFit(new_img, edge_dict)
 
 # # This is for point-to-point lines
 # for color_key in edge_dict.keys():
@@ -245,25 +253,30 @@ SplitByBestFit(new_img, edge_dict)
             
 
 #debugging
-# for color_key in edge_dict.keys():
-#     if(color_key == "255,255,255"):
-#         continue
-#     # if(color_key != "36,28,237"):
-#     #     continue
-
-#     j = 0 
-#     for edge_list in edge_dict[color_key]:
-#         i = 0
-#         # if(j == 1):
-#         #     continue
-#         # j += 1
-#         # print(edge_list)
-#         # print(len(edge_dict[color_key]))
-#         for edge in edge_list:
-#             img[edge] = [i,i,i]
-#             i += 4
+for color_key in edge_dict.keys():
+    if(color_key == "255,255,255"):
+        continue
+    # if(len(edge_dict[color_key]) < 3):
+    #     continue
+    print(color_key)
+    print(len(edge_dict[color_key]))
+    j = -1
+    for edge_list in edge_dict[color_key]:
+        j += 1
+        if(not j == 1):
+            continue
+        print(len(edge_list))
+        i = 0
+        # if(j == 1):
+        #     continue
+        # j += 1
+        # print(edge_list)
+        # print(len(edge_dict[color_key]))
+        for edge in edge_list:
+            img[edge] = [127,255-i,255]
+            i += 2
     
 
-cv2.imwrite("output.png", new_img)
+cv2.imwrite("output.png", img)
 # cv2.imshow("image", img)
 # cv2.waitKey(0)
