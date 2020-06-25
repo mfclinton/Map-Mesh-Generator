@@ -210,9 +210,9 @@ for index in np.ndindex(img.shape[:-1]):
             break
 
 #splitting into line segments
-# new_img = np.full(img.shape,[255,255,255], np.uint8)
-# ConvertDictToNPArrays(edge_dict)
-# SplitByBestFit(new_img, edge_dict)
+new_img = np.full(img.shape,[255,255,255], np.uint8)
+ConvertDictToNPArrays(edge_dict)
+SplitByBestFit(new_img, edge_dict)
 
 # # This is for point-to-point lines
 # for color_key in edge_dict.keys():
@@ -284,6 +284,6 @@ for index in np.ndindex(img.shape[:-1]):
         
     
 
-cv2.imwrite("output.png", img)
+cv2.imwrite("output.png", new_img)
 # cv2.imshow("image", img)
 # cv2.waitKey(0)
