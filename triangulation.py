@@ -53,52 +53,98 @@ def IsNeighbor(index_a, index_b):
 
 def GetLineOfBestFit(indexes_contained_range, points):
     selected_points = points[indexes_contained_range[0]:indexes_contained_range[1] + 1]
+    # print("---------------------")
     # print(selected_points)
     x_and_y_means = np.mean(selected_points, axis=0)
+    # print("x and y means", x_and_y_means)
     xy_mean = np.mean(np.multiply(selected_points[:,0], selected_points[:,1]))
-    x_sqrd_mean = np.mean(np.square(selected_points[:,0]))
-
+    # print("x y means", xy_mean)
+    x_sqrd_mean = np.mean(np.square(selected_points[:,1]))
+    # print("x sqrd mean", x_sqrd_mean)
     m_denominator = (math.pow(x_and_y_means[1],2) - x_sqrd_mean)
+    # print("useful", m_denominator)
     if(m_denominator == 0):
-        print("Denominator is 0")
+        # print("Denominator is 0")
         return None
-    m = (x_and_y_means[1] * x_and_y_means[0] - xy_mean) / m_denominator
+    m = ((x_and_y_means[1] * x_and_y_means[0]) - xy_mean) / m_denominator
     b = x_and_y_means[0] - m * x_and_y_means[1]
     return (m, b, x_and_y_means[0])
 
-def GetRSqred(indexes_contained_range, points, m_and_b_y_mean):
-    if(m_and_b_y_mean == None):
-        return 1 #TODO: need a better solution for undefined
+# def GetRSqred(indexes_contained_range, points, m_and_b_y_mean):
+#     if(m_and_b_y_mean == None):
+#         return 1 #TODO: need a better solution for undefined
 
-    total_sqred_error_line = 0
-    total_sqred_error_mean = 0
+#     total_sqred_error_line = 0
+#     total_sqred_error_mean = 0
+#     for index in range(indexes_contained_range[0], indexes_contained_range[1] + 1):
+#         p = points[index]
+#         y_approx = m_and_b_y_mean[0] * p[1] + m_and_b_y_mean[1]
+#         # if(m_and_b_y_mean[0] != 0):
+#         #     print(y_approx, p, m_and_b_y_mean, "WOW LOL XD")
+            
+
+#         total_sqred_error_line += math.pow(p[0] - y_approx, 2)
+#         total_sqred_error_mean += math.pow(p[0] - m_and_b_y_mean[2], 2)
+#         # print("YMEAN", m_and_b_y_mean[2])
+#         # if(m_and_b_y_mean[2] != y_approx):
+#         #     print(m_and_b_y_mean[2], y_approx)
+
+#     if(total_sqred_error_mean == 0):
+#         print(total_sqred_error_line, "TOTAL SQUARED ERROR LINE")
+#         print("OOPS")
+#         return 1 #TODO: check this
+
+#     print("UHHH", 1 - (total_sqred_error_line / total_sqred_error_mean), total_sqred_error_line, total_sqred_error_mean)
+#     return 1 - (total_sqred_error_line / total_sqred_error_mean)
+
+def GetScore(indexes_contained_range, points, m_and_b_y_mean):
+    if(m_and_b_y_mean == None):
+        return 0 #TODO: need a better solution for undefined
+
+    mean_ae = 0
+    max_ae = None
     for index in range(indexes_contained_range[0], indexes_contained_range[1] + 1):
         p = points[index]
         y_approx = m_and_b_y_mean[0] * p[1] + m_and_b_y_mean[1]
+        ae = abs(p[0] - y_approx)
+        mean_ae += ae
+        if(max_ae == None):
+            max_ae = ae
+        elif(ae > max_ae):
+            max_ae = ae
 
-        total_sqred_error_line += math.pow(p[0] - y_approx, 2)
-        total_sqred_error_mean += math.pow(p[0] - m_and_b_y_mean[2], 2)
-
-    if(total_sqred_error_mean == 0):
-        # print(total_sqred_error_line)
-        return 1 #TODO: check this
-
-    return 1 - (total_sqred_error_line / total_sqred_error_mean)
+    mean_ae /= (indexes_contained_range[1] + 1) - indexes_contained_range[0]
+    print("S is ", mean_ae)
+    return mean_ae
 
 def PlotLines(img, points, lines):
+    i = 0
+    print(lines)
+    print(len(lines))
     for l in lines:
         index_1 = l[0][0]
         index_2 = l[0][1]
         if(l[1] == None):
+            print("UHHH")
             cv2.line(img, (points[index_1][1], points[index_1][0]), (points[index_2][1], points[index_2][0]), [0,0,0])
             continue
 
         line_eq = lambda x: l[1][0] * x + l[1][1]
         x_1 = points[index_1][1]
         x_2 = points[index_2][1]
-        y_1 = int(line_eq(x_1))
-        y_2 = int(line_eq(x_2))
+        # y_1 = int(line_eq(x_1))
+        # y_2 = int(line_eq(x_2))
+        y_1 = points[index_1][0]
+        y_2 = points[index_2][0]
+        #TODO, solve the steepness problem
+        # if(abs(l[1][0]) > 10):
+        #     y_1 = points[index_1][0]
+        #     y_2 = points[index_2][0]
+            
         cv2.line(img, (x_1, y_1), (x_2, y_2), [0,0,0])
+        # cv2.imwrite("line_%d.png"%i, img)
+        print((x_1, y_1), " TO ", (x_2, y_2), " for range of ", l[0], l[1][0])
+        i += 1
 
     # cv2.line(img, (points[-1][1], points[-1][0]), (points[0][1], points[0][0]), [0,0,0])
 
@@ -125,16 +171,31 @@ def SplitByBestFit(img, edge_dict):
                 for index in range(cur_index + 2, len(edge_list)):
                     points_contained = (cur_index, index)
                     line_info = GetLineOfBestFit(points_contained, edge_list)
-                    r_sqrd = GetRSqred(points_contained, edge_list, line_info)
-                    if(r_sqrd < .7):
+                    # r_sqrd = GetRSqred(points_contained, edge_list, line_info)
+                    score = GetScore(points_contained, edge_list, line_info)
+                    if(2*score > 1):
                         lines.append(((cur_index, index - 1), line_info[:2]))
+                        # print(index - cur_index, "index now is ", index - 1)
+                        print("INDEX CHANGE ", cur_index, "TO ", index - 1)
                         cur_index = index - 1
                         line_added = True
-                        # print(r_sqrd)
                         break
+                    # if(r_sqrd < .7):
+                    #     lines.append(((cur_index, index - 1), line_info[:2]))
+                    #     print(index - cur_index)
+                    #     print(r_sqrd, line_info, edge_list[cur_index], edge_list[index])
+                    #     cur_index = index - 1
+                    #     line_added = True
+                    #     # if(r_sqrd != 0):
+                    #     #     print(line_info, points_contained)
+                    #     break
+                    # else:
+                    #     print("LINE INFO", line_info, edge_list[cur_index], edge_list[index], r_sqrd)
 
                 if(not line_added):
+                    print("Should Be At End")
                     points_contained = (cur_index, len(edge_list) - 1)
+                    print("SPECIAL CONTAINED " , points_contained)
                     line_info = GetLineOfBestFit(points_contained, edge_list)
                     if(line_info == None):
                         lines.append(((cur_index, len(edge_list) - 1), None))
@@ -157,7 +218,7 @@ def ConvertDictToNPArrays(edge_dict):
 
 
 #Parameters
-fileName = "test_files/europe.png"
+fileName = "test_files/provinces.png"
 
 #Image Processing
 img = cv2.imread(fileName) #(row, column) order
@@ -188,7 +249,7 @@ for index in np.ndindex(img.shape[:-1]):
         if(len(edge_list_indexes_to_merge) == 0):
             edge_dict[color_key].append([index])
         elif(len(edge_list_indexes_to_merge) == 2):
-            print("MERGE", len(edge_dict[color_key]))
+            # print("MERGE", len(edge_dict[color_key]))
             # if(color_key == "36,28,237"):
             #     print(index)
             merged_edge_list = edge_dict[color_key][edge_list_indexes_to_merge[0]]
@@ -203,7 +264,7 @@ for index in np.ndindex(img.shape[:-1]):
             merged_edge_list.extend(other_edge_list)
             edge_dict[color_key].pop(edge_list_indexes_to_merge[1])
             # print(edge_dict[color_key])
-            print("done", len(edge_dict[color_key]))
+            # print("done", len(edge_dict[color_key]))
 
         elif(len(edge_list_indexes_to_merge) > 2):
             print("Image Is Not Properly Formatted")
