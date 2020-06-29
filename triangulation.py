@@ -22,80 +22,20 @@ def IsEdge(index, img):
 
 def IsNeighbor(index_a, index_b):
     difference = np.abs(np.subtract(index_a,index_b))
-    # if(difference[1] + difference[0] <= 1):
-    #     print(difference)
     return (difference[1] + difference[0] <= 1)
-    # return (difference[1] <= 1 and difference[0] <= 1)
-
-# TODO: Problem, need percentage
-# def LineErrorPtoP(line_segment, points):
-#     p1 = points[line_segment[0]]
-#     p2 = points[line_segment[1]]
-
-#     if(p2[1] - p1[1] == 0):
-#         error = 0
-#         for index in range(line_segment[0] + 1,line_segment[1]):
-#             error += math.sqrt(math.pow(points[index][1] - p1[1],2))
-#         return error
-
-#     m = (p2[0] - p1[0]) / (p2[1] - p1[1]) #y axis, gonna be upsidedown
-#     b = p1[0] - m*p1[1]
-#     proj_denominator = 1 + (m*m)
-#     error = 0
-#     for index in range(line_segment[0] + 1,line_segment[1]):
-#         p = points[index]
-#         proj_scalar = (p[1] + p[0] * m) / proj_denominator
-#         proj = (proj_scalar*m, proj_scalar) #row, column
-#         dist = math.sqrt(math.pow(proj[0] - p[0],2) + math.pow(proj[1] - p[1],2))
-#         error += dist
-    
-#     return error
 
 def GetLineOfBestFit(indexes_contained_range, points):
     selected_points = points[indexes_contained_range[0]:indexes_contained_range[1] + 1]
-    # print("---------------------")
-    # print(selected_points)
     x_and_y_means = np.mean(selected_points, axis=0)
-    # print("x and y means", x_and_y_means)
     xy_mean = np.mean(np.multiply(selected_points[:,0], selected_points[:,1]))
-    # print("x y means", xy_mean)
     x_sqrd_mean = np.mean(np.square(selected_points[:,1]))
-    # print("x sqrd mean", x_sqrd_mean)
     m_denominator = (math.pow(x_and_y_means[1],2) - x_sqrd_mean)
-    # print("useful", m_denominator)
     if(m_denominator == 0):
         # print("Denominator is 0")
         return None
     m = ((x_and_y_means[1] * x_and_y_means[0]) - xy_mean) / m_denominator
     b = x_and_y_means[0] - m * x_and_y_means[1]
     return (m, b, x_and_y_means[0])
-
-# def GetRSqred(indexes_contained_range, points, m_and_b_y_mean):
-#     if(m_and_b_y_mean == None):
-#         return 1 #TODO: need a better solution for undefined
-
-#     total_sqred_error_line = 0
-#     total_sqred_error_mean = 0
-#     for index in range(indexes_contained_range[0], indexes_contained_range[1] + 1):
-#         p = points[index]
-#         y_approx = m_and_b_y_mean[0] * p[1] + m_and_b_y_mean[1]
-#         # if(m_and_b_y_mean[0] != 0):
-#         #     print(y_approx, p, m_and_b_y_mean, "WOW LOL XD")
-            
-
-#         total_sqred_error_line += math.pow(p[0] - y_approx, 2)
-#         total_sqred_error_mean += math.pow(p[0] - m_and_b_y_mean[2], 2)
-#         # print("YMEAN", m_and_b_y_mean[2])
-#         # if(m_and_b_y_mean[2] != y_approx):
-#         #     print(m_and_b_y_mean[2], y_approx)
-
-#     if(total_sqred_error_mean == 0):
-#         print(total_sqred_error_line, "TOTAL SQUARED ERROR LINE")
-#         print("OOPS")
-#         return 1 #TODO: check this
-
-#     print("UHHH", 1 - (total_sqred_error_line / total_sqred_error_mean), total_sqred_error_line, total_sqred_error_mean)
-#     return 1 - (total_sqred_error_line / total_sqred_error_mean)
 
 def GetScore(indexes_contained_range, points, m_and_b_y_mean):
     if(m_and_b_y_mean == None):
@@ -156,11 +96,7 @@ def SplitByBestFit(img, edge_dict):
         #debugging purposes
         if(color_key == "255,255,255"):
             continue
-        # if(color_key != "36,28,237"):
-        #     continue
 
-        # print(color_key)
-        # print(len(edge_dict[color_key]))
         for edge_list in edge_dict[color_key]:
             lines = []
             cur_index = 0
@@ -180,17 +116,6 @@ def SplitByBestFit(img, edge_dict):
                         cur_index = index - 1
                         line_added = True
                         break
-                    # if(r_sqrd < .7):
-                    #     lines.append(((cur_index, index - 1), line_info[:2]))
-                    #     print(index - cur_index)
-                    #     print(r_sqrd, line_info, edge_list[cur_index], edge_list[index])
-                    #     cur_index = index - 1
-                    #     line_added = True
-                    #     # if(r_sqrd != 0):
-                    #     #     print(line_info, points_contained)
-                    #     break
-                    # else:
-                    #     print("LINE INFO", line_info, edge_list[cur_index], edge_list[index], r_sqrd)
 
                 if(not line_added):
                     print("Should Be At End")
@@ -218,7 +143,7 @@ def ConvertDictToNPArrays(edge_dict):
 
 
 #Parameters
-fileName = "test_files/provinces.png"
+fileName = "test_files/europe.png"
 
 #Image Processing
 img = cv2.imread(fileName) #(row, column) order
@@ -227,9 +152,7 @@ edge_dict = {}
 for index in np.ndindex(img.shape[:-1]):
     if(IsEdge(index, img)):
         color_key = ",".join(["%d"%value for value in img[index]])
-        # if(not color_key == "29,230,181"): # REMOVE LATER
-        #     continue
-        # print(index)
+
         #dict entry creation
         #TODO more efficient
         if(not color_key in edge_dict):
@@ -238,7 +161,6 @@ for index in np.ndindex(img.shape[:-1]):
         #adding to edge list
         edge_list_indexes_to_merge = []
         for edge_list_index, edge_list in enumerate(edge_dict[color_key]):
-            # print(edge_list[0], edge_list[-1])
             if(IsNeighbor(index, edge_list[-1])):
                 edge_list.append(index)
                 edge_list_indexes_to_merge.append(edge_list_index)
@@ -249,9 +171,6 @@ for index in np.ndindex(img.shape[:-1]):
         if(len(edge_list_indexes_to_merge) == 0):
             edge_dict[color_key].append([index])
         elif(len(edge_list_indexes_to_merge) == 2):
-            # print("MERGE", len(edge_dict[color_key]))
-            # if(color_key == "36,28,237"):
-            #     print(index)
             merged_edge_list = edge_dict[color_key][edge_list_indexes_to_merge[0]]
             if(merged_edge_list[0] == index):
                 merged_edge_list.reverse() #flips list to be [..., index]
@@ -263,8 +182,6 @@ for index in np.ndindex(img.shape[:-1]):
 
             merged_edge_list.extend(other_edge_list)
             edge_dict[color_key].pop(edge_list_indexes_to_merge[1])
-            # print(edge_dict[color_key])
-            # print("done", len(edge_dict[color_key]))
 
         elif(len(edge_list_indexes_to_merge) > 2):
             print("Image Is Not Properly Formatted")
@@ -274,47 +191,6 @@ for index in np.ndindex(img.shape[:-1]):
 new_img = np.full(img.shape,[255,255,255], np.uint8)
 ConvertDictToNPArrays(edge_dict)
 SplitByBestFit(new_img, edge_dict)
-
-# # This is for point-to-point lines
-# for color_key in edge_dict.keys():
-#     if(color_key == "255,255,255"):
-#         continue
-#     if(color_key != "36,28,237"):
-#         continue
-
-#     for edge_list in edge_dict[color_key]:
-#         line_segments = []
-        
-#         cur_index = 0
-#         print(len(edge_list))
-#         while(cur_index < len(edge_list) - 1):
-#             cur_index_updated = False
-#             for edge_index, edge in enumerate(edge_list):
-#                 if(edge_index == cur_index):
-#                     # print("LOL")
-#                     continue
-#                 error = LineError((cur_index, edge_index), edge_list)
-#                 if(error > 20):
-#                     print(cur_index, edge_index)
-#                     cur_index = edge_index
-#                     line_segments.append((cur_index, edge_index - 1))
-#                     cur_index_updated = True
-#                     break
-            
-#             if(not cur_index_updated):
-#                 print("special case", cur_index, edge_index)
-#                 cur_index += 2
-#                 # line_segments.append((cur_index, cur_index + 1))
-        
-#         #debugging
-#         for line in line_segments:
-#             print(line)
-#             p1 = edge_list[line[0]]
-#             p2 = edge_list[line[1]]
-#             cv2.line(img, (p1[1], p1[0]), (p2[1], p2[0]), [0,0,0])
-
-
-
             
 
 #debugging
