@@ -1,33 +1,38 @@
-import threading
-from concurrent.futures import ThreadPoolExecutor
-from numba import jit, cuda
+import matplotlib.pyplot as plt
 import numpy as np
 
-# @jit(nopython=True)
-# def take(val):
-#     for i in range(100000):
-#         print("hello")
-#     return 420
+import triangle as tr
 
-# results = []
-# with ThreadPoolExecutor(max_workers=8) as executor:
-#     results = executor.map(take, range(3))
-#     print("I LOVE DOGS")
+# arrays to fill in with input
+vertices = []
+segments = []
+regions = []
 
-# print("EXITED LOL")
-# for value in results:
-#     print(value)
+# make a box with given dims and place given attribute at its center
+def make_box(x, y, w, h, attribute):
 
-points = np.array([[0,1],[1,2],[3,3],[5,5]])
+    i = len(vertices)
+    
+    vertices.extend([[x,   y],
+                     [x+w, y],
+                     [x+w, y+h],
+                     [x,   y+h]])
 
-print(points[0:1 + 1])
+    segments.extend([(i+0, i+1),
+                     (i+1, i+2),
+                     (i+2, i+3),
+                     (i+3, i+0)])
+    
+    regions.append([x+0.5*w, y+0.5*h, attribute, 0])
 
-for i in range(1+1, 3):
-    print('lol')
-# print(np.mean(points, axis=0))
-# print(np.multiply(np.mean(points, axis=0)))
+# generate some input    
+make_box(0, 0, 5, 5, 1)
+make_box(1, 1, 3, 1, 2)
+make_box(1, 3, 1, 1, 3)
+make_box(3, 3, 1, 1, 4)
 
-# print(np.multiply(points[:,0], points[:,1]))
-# print(np.mean(np.multiply(points[:,0], points[:,1])))
-# print(np.square(points[:,0]))
-# print(np.mean(np.square(points[:,0])))
+A = dict(vertices=vertices, segments=segments, regions=regions)
+B = tr.triangulate(A, 'pA')
+    
+tr.compare(plt, A, B)
+plt.show()

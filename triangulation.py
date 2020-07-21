@@ -54,18 +54,18 @@ def GetScore(indexes_contained_range, points, m_and_b_y_mean):
             max_ae = ae
 
     mean_ae /= (indexes_contained_range[1] + 1) - indexes_contained_range[0]
-    print("S is ", mean_ae)
+    # print("S is ", mean_ae)
     return mean_ae
 
 def PlotLines(img, points, lines):
     i = 0
     print(lines)
-    print(len(lines))
+    # print(len(lines))
     for l in lines:
         index_1 = l[0][0]
         index_2 = l[0][1]
         if(l[1] == None):
-            print("UHHH")
+            # print("UHHH")
             cv2.line(img, (points[index_1][1], points[index_1][0]), (points[index_2][1], points[index_2][0]), [0,0,0])
             continue
 
@@ -83,7 +83,7 @@ def PlotLines(img, points, lines):
             
         cv2.line(img, (x_1, y_1), (x_2, y_2), [0,0,0])
         # cv2.imwrite("line_%d.png"%i, img)
-        print((x_1, y_1), " TO ", (x_2, y_2), " for range of ", l[0], l[1][0])
+        # print((x_1, y_1), " TO ", (x_2, y_2), " for range of ", l[0], l[1][0])
         i += 1
 
     # cv2.line(img, (points[-1][1], points[-1][0]), (points[0][1], points[0][0]), [0,0,0])
@@ -93,6 +93,7 @@ def PlotLines(img, points, lines):
 
 def SplitByBestFit(img, edge_dict):
     for color_key in edge_dict.keys():
+        
         #debugging purposes
         if(color_key == "255,255,255"):
             continue
@@ -112,15 +113,15 @@ def SplitByBestFit(img, edge_dict):
                     if(2*score > 1):
                         lines.append(((cur_index, index - 1), line_info[:2]))
                         # print(index - cur_index, "index now is ", index - 1)
-                        print("INDEX CHANGE ", cur_index, "TO ", index - 1)
+                        # print("INDEX CHANGE ", cur_index, "TO ", index - 1)
                         cur_index = index - 1
                         line_added = True
                         break
 
                 if(not line_added):
-                    print("Should Be At End")
+                    # print("Should Be At End")
                     points_contained = (cur_index, len(edge_list) - 1)
-                    print("SPECIAL CONTAINED " , points_contained)
+                    # print("SPECIAL CONTAINED " , points_contained)
                     line_info = GetLineOfBestFit(points_contained, edge_list)
                     if(line_info == None):
                         lines.append(((cur_index, len(edge_list) - 1), None))
@@ -135,12 +136,62 @@ def SplitByBestFit(img, edge_dict):
             # if(len(edge_list) == 1):
             #     print("error", color_key, edge_list)
             PlotLines(img, edge_list, lines)
+            # Triangulate(edge_list, lines)
 
 def ConvertDictToNPArrays(edge_dict):
     for color_key in edge_dict.keys():
         for index in range(len(edge_dict[color_key])):
             edge_dict[color_key][index] = np.array(edge_dict[color_key][index])
 
+def Triangulate(points, lines):
+    if(len(lines) < 3):
+        return
+
+    segments = []
+    vertices = []
+    i = 0
+    for l in lines:
+        # point to point, temp TODO: change tis
+        index_1 = l[0][0]
+        vertices.append((points[index_1][0], points[index_1][1]))
+        segments.append((i, i+1))
+        i += 1
+
+    last_point = points[lines[-1][0][0]]
+    vertices.append((last_point[0],last_point[1]))
+
+    
+    
+    # TODO: temp fix to connect last part
+    segments.append((len(segments) - 1, 0))
+
+    # print(vertices)
+    # print(segments)
+    A = dict(vertices=vertices, segments=segments)
+    B = tr.triangulate(A, 'pA')
+    # print(B)
+    
+    tr.compare(plt, A, B)
+    print("UH")
+    # i = 0
+    # print(lines)
+    # # print(len(lines))
+    # for l in lines:
+    #     index_1 = l[0][0]
+    #     index_2 = l[0][1]
+    #     if(l[1] == None):
+    #         cv2.line(img, (points[index_1][1], points[index_1][0]), (points[index_2][1], points[index_2][0]), [0,0,0])
+    #         continue
+
+    #     line_eq = lambda x: l[1][0] * x + l[1][1]
+    #     x_1 = points[index_1][1]
+    #     x_2 = points[index_2][1]
+
+    #     y_1 = points[index_1][0]
+    #     y_2 = points[index_2][0]
+            
+    #     cv2.line(img, (x_1, y_1), (x_2, y_2), [0,0,0])
+    #     i += 1
 
 #Parameters
 fileName = "test_files/europe.png"
@@ -222,5 +273,6 @@ SplitByBestFit(new_img, edge_dict)
     
 
 cv2.imwrite("output.png", new_img)
+# plt.show()
 # cv2.imshow("image", img)
 # cv2.waitKey(0)
