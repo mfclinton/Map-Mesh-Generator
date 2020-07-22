@@ -59,7 +59,7 @@ def GetScore(indexes_contained_range, points, m_and_b_y_mean):
 
 def PlotLines(img, points, lines):
     i = 0
-    print(lines)
+    # print(lines)
     # print(len(lines))
     for l in lines:
         index_1 = l[0][0]
@@ -136,7 +136,7 @@ def SplitByBestFit(img, edge_dict):
             # if(len(edge_list) == 1):
             #     print("error", color_key, edge_list)
             PlotLines(img, edge_list, lines)
-            # Triangulate(edge_list, lines)
+            Triangulate(edge_list, lines)
 
 def ConvertDictToNPArrays(edge_dict):
     for color_key in edge_dict.keys():
@@ -169,9 +169,10 @@ def Triangulate(points, lines):
     # print(segments)
     A = dict(vertices=vertices, segments=segments)
     B = tr.triangulate(A, 'pA')
-    # print(B)
+    print(B)
     
     tr.compare(plt, A, B)
+    plt.show()
     print("UH")
     # i = 0
     # print(lines)
@@ -192,6 +193,8 @@ def Triangulate(points, lines):
             
     #     cv2.line(img, (x_1, y_1), (x_2, y_2), [0,0,0])
     #     i += 1
+
+
 
 #Parameters
 fileName = "test_files/europe.png"
