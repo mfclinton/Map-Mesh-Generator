@@ -98,6 +98,7 @@ def SplitByBestFit(img, edge_dict):
         if(color_key == "255,255,255"):
             continue
 
+        edge_list_num = 0
         for edge_list in edge_dict[color_key]:
             lines = []
             cur_index = 0
@@ -136,14 +137,15 @@ def SplitByBestFit(img, edge_dict):
             # if(len(edge_list) == 1):
             #     print("error", color_key, edge_list)
             PlotLines(img, edge_list, lines)
-            Triangulate(edge_list, lines)
+            Triangulate(edge_list, lines, "{0}_{1}".format(color_key,edge_list_num))
+            edge_list_num += 1
 
 def ConvertDictToNPArrays(edge_dict):
     for color_key in edge_dict.keys():
         for index in range(len(edge_dict[color_key])):
             edge_dict[color_key][index] = np.array(edge_dict[color_key][index])
 
-def Triangulate(points, lines):
+def Triangulate(points, lines, objName):
     if(len(lines) < 3):
         return
 
@@ -169,6 +171,7 @@ def Triangulate(points, lines):
     # print(segments)
     A = dict(vertices=vertices, segments=segments)
     B = tr.triangulate(A, 'pA')
+    TriangulationToOBJ(B, objName)
     print(B)
     
     tr.compare(plt, A, B)
@@ -194,7 +197,16 @@ def Triangulate(points, lines):
     #     cv2.line(img, (x_1, y_1), (x_2, y_2), [0,0,0])
     #     i += 1
 
+def TriangulationToOBJ(B, objName):
+    with open("{0}.obj".format(objName),"w") as f:
+        for v in B["vertices"]:
+            f.write("v {0} {1} {2}\n".format(v[0],0,v[1]))
 
+        # TODO: temp for flat
+        f.write("vn {0} {1} {2}\n".format(0,1,0))
+
+        for t in B["triangles"]:
+            f.write("f {0}//1 {1}//1 {2}//1\n".format(t[0] + 1,t[1] + 1,t[2] + 1))
 
 #Parameters
 fileName = "test_files/europe.png"
