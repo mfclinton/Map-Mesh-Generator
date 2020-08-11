@@ -1,38 +1,17 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import os
+import bpy
 
-import triangle as tr
+# put the location to the folder where the objs are located here in this fashion
+# this line will only work on windows ie C:\objects
+path_to_obj_dir = "objs"
 
-# arrays to fill in with input
-vertices = []
-segments = []
-regions = []
+# get list of all files in directory
+file_list = sorted(os.listdir(path_to_obj_dir))
 
-# make a box with given dims and place given attribute at its center
-def make_box(x, y, w, h, attribute):
+# get a list of files ending in 'obj'
+obj_list = [item for item in file_list if item.endswith('.obj')]
 
-    i = len(vertices)
-    
-    vertices.extend([[x,   y],
-                     [x+w, y],
-                     [x+w, y+h],
-                     [x,   y+h]])
-
-    segments.extend([(i+0, i+1),
-                     (i+1, i+2),
-                     (i+2, i+3),
-                     (i+3, i+0)])
-    
-    regions.append([x+0.5*w, y+0.5*h, attribute, 0])
-
-# generate some input    
-make_box(0, 0, 5, 5, 1)
-make_box(1, 1, 3, 1, 2)
-make_box(1, 3, 1, 1, 3)
-make_box(3, 3, 1, 1, 4)
-
-A = dict(vertices=vertices, segments=segments, regions=regions)
-B = tr.triangulate(A, 'pA')
-    
-tr.compare(plt, A, B)
-plt.show()
+# loop through the strings in obj_list and add the files to the scene
+for item in obj_list:
+    path_to_file = os.path.join(path_to_obj_dir, item)
+    bpy.ops.import_scene.obj(filepath = path_to_file)
