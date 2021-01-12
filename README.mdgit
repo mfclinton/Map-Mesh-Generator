@@ -1,1 +1,0 @@
-"This code chooses points to best approximate a specialized map image, then triangulates those points using Delauney's algorithm to generate a mesh represented as a .obj"
