@@ -70,7 +70,7 @@ def IsInsidePolygon(pos, points):
     return (intersects % 2) == 1
         
 
-img_path = "test_files\\red_MA.png"
+img_path = "test_files\\europe.png"
 img = cv2.imread(img_path)
 h,w, channels = img.shape
 
@@ -84,6 +84,7 @@ num_divides = 5
 
 explored_mask = np.zeros((h + 2, w + 2), np.uint8)
 #Note: rect in format of (x, y, width, height)
+object_id = 0
 for x in range(img.shape[1]):
     for y in range(img.shape[0]):
         if(np.any(np.all(img[y,x] == ignored_cells, axis=1))):
@@ -127,13 +128,14 @@ for x in range(img.shape[1]):
 
             points.sort(key = lambda x: x[1])
             #ALGORITHM OPTIONS
-            with open("debug.obj", "w") as f:
+            with open(str(object_id) + ".obj", "w") as f:
                 for p in points:
                     line = "v " + str(p[0][1]) + " " + str(p[0][0]) + " " + str("0") + "\n"
                     f.write(line)
                 for t in triangles:
                     line = "f " + str(t[0]) + " " + str(t[1]) + " " + str(t[2]) + "\n"
-                    f.write(line) 
+                    f.write(line)
+            object_id += 1
                 
             cv2.imwrite("debug_pic.png", roi)
             # cv2.imshow("test", roi)
