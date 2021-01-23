@@ -43,17 +43,29 @@ def IsInsidePolygon(pos, points):
         #Checks that pos is to between p1 and p2 on the y axis, and left to at least one of the points
         if(not ((p1[0] <= pos[0] <= p2[0] or p2[0] <= pos[0] <= p1[0]) and (pos[1] <= p1[1] or pos[1] <= p2[1]))):
             continue
-        elif(p1[0] == p2[0]):
-            #We don't count a intersection with horizontal lines
+
+        #Checks if new point is equal to an existing point
+        if(np.all(pos == p1)):
+            return True
+        
+        #Checks Vertical and Horizontal Lines
+        if(p1[0] == p2[0]):
+            if(p1[1] <= pos[1] <= p2[1] or p2[1] <= pos[1] <= p1[1]):
+                return True #On the line
             continue
         elif(p1[1] == p2[1]):
+            if(pos[1] == p1[1]):
+                return True #On the line
             num_intersects += 1
             continue
 
         m = (p1[0] - p2[0]) / (p1[1] - p2[1])
         b = p1[0] - m * p1[1]
         x_calculated = (pos[0] - b) / m
-        if(pos[1] <= x_calculated):
+        #Return true if on the line
+        if(pos[1] == x_calculated):
+            return True
+        elif(pos[1] < x_calculated):
             num_intersects += 1
     return (num_intersects % 2) == 1
 
@@ -72,7 +84,8 @@ def CreateStartingTriangle(roi):
 def GetNewOriginAndDir(points, p_idx1, p_idx2, roi):
     p1 = points[p_idx1][0]
     p2 = points[p_idx2][0]
-    new_origin = np.rint((p1 + p2) / 2).astype(int)
+    new_origin_pos = (p1 + p2) / 2 #TODO: issue with position and rounding, fix later
+    new_origin_pixel = np.rint(new_origin_pos).astype(int)
 
     #Get normal vector, either calculated or vertical by default (because divide by zero)
     dir_vec = np.array([1.0,0.0])
@@ -80,13 +93,40 @@ def GetNewOriginAndDir(points, p_idx1, p_idx2, roi):
         dir_vec =  np.array([- (p2[1] - p1[1]) / (p2[0] - p1[0]), 1])
         dir_vec /= np.linalg.norm(dir_vec, ord=1)
 
+    if(IsInsidePolygon(new_origin + dir_vec, points) == IsInsidePolygon(new_origin - dir_vec, points)):
+        print("----------")
+        print("WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+        print(points, new_origin + dir_vec)
+        print(p1, p2)
+        print(new_origin, dir_vec)
+        for p in points:
+            roi[p[0][0],p[0][1]] = 180
+
+        meme1 = np.rint(new_origin + dir_vec).astype(int)
+        meme2 = np.rint(new_origin - dir_vec).astype(int)
+        print(meme1, meme2)
+        roi[meme1[0], meme1[1]] = 127
+        roi[meme2[0], meme2[1]] = 127
+        roi[new_origin[0], new_origin[1]] = 50
+        cv2.imwrite("debug_pic.png", roi)
+        cv2.imshow("test", roi)
+        cv2.waitKey(0)
+
+        print("----------")
+        
+
     #Sets dir_vec to point outwards from polygon
-    if(IsInsidePolygon(np.rint(new_origin + dir_vec).astype(int), points)):
+    if(IsInsidePolygon(new_origin + dir_vec, points)):
         dir_vec *= -1
+        print("BBB")
+    else:
+        print("AAA")
 
     #Sets dir_vec to point inwards if the new_origin is not in the actual shape
     if(roi[new_origin[0], new_origin[1]] == 0):
         dir_vec *= -1
+        #NOT THE ISSUE
+        # print(dir_vec, new_origin, len(points))
 
     return new_origin, dir_vec
 
