@@ -11,6 +11,7 @@ def GetRandomPoint(roi):
 #picks starting pixel from several options
 def GetStartingPoint(roi, option=None):
     origin = GetRandomPoint(roi)
+    return np.array([8,37])
     return origin
 
 def CreateNewPoint(origin, dir_vec, roi):
@@ -36,6 +37,7 @@ def CreateNewPoint(origin, dir_vec, roi):
 
 def IsInsidePolygon(pos, points):
     num_intersects = 0
+    print("IS INSIDE POLYGON------")
     for p_idx in range(-1, len(points) - 1):
         p1 = points[p_idx][0]
         p2 = points[p_idx + 1][0]
@@ -46,6 +48,7 @@ def IsInsidePolygon(pos, points):
 
         #Checks if new point is equal to an existing point
         if(np.all(pos == p1)):
+            #TODO, don't add new point
             return True
         
         #Checks Vertical and Horizontal Lines
@@ -66,7 +69,19 @@ def IsInsidePolygon(pos, points):
         if(pos[1] == x_calculated):
             return True
         elif(pos[1] < x_calculated):
+            if(x_calculated == p1[1]):
+                p_prev = points[p_idx - 1][0]
+                if(p_prev[0] <= pos[0] <= p2[0] or p2[0] <= pos[0] <= p_prev[0]):
+                    num_intersects += 1
+                continue
+            elif(x_calculated == p2[1]):
+                continue
+
+
+            print(p1, p2, "INTERSECT")
             num_intersects += 1
+    print(num_intersects)
+    print("ISOUTISE------")
     return (num_intersects % 2) == 1
 
 #creates the initial triangle and returns a list of 3 points and their respective ids
@@ -93,42 +108,42 @@ def GetNewOriginAndDir(points, p_idx1, p_idx2, roi):
         dir_vec =  np.array([- (p2[1] - p1[1]) / (p2[0] - p1[0]), 1])
         dir_vec /= np.linalg.norm(dir_vec, ord=1)
 
-    if(IsInsidePolygon(new_origin + dir_vec, points) == IsInsidePolygon(new_origin - dir_vec, points)):
+    if(IsInsidePolygon(new_origin_pos + dir_vec, points) == IsInsidePolygon(new_origin_pos - dir_vec, points)):
         print("----------")
         print("WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
-        print(points, new_origin + dir_vec)
+        print(points, new_origin_pos + dir_vec)
         print(p1, p2)
-        print(new_origin, dir_vec)
+        print(new_origin_pos, dir_vec)
         for p in points:
             roi[p[0][0],p[0][1]] = 180
 
-        meme1 = np.rint(new_origin + dir_vec).astype(int)
-        meme2 = np.rint(new_origin - dir_vec).astype(int)
+        meme1 = np.rint(new_origin_pos + dir_vec).astype(int)
+        meme2 = np.rint(new_origin_pos - dir_vec).astype(int)
         print(meme1, meme2)
         roi[meme1[0], meme1[1]] = 127
         roi[meme2[0], meme2[1]] = 127
-        roi[new_origin[0], new_origin[1]] = 50
-        cv2.imwrite("debug_pic.png", roi)
-        cv2.imshow("test", roi)
-        cv2.waitKey(0)
+        roi[new_origin_pixel[0], new_origin_pixel[1]] = 50
+        # cv2.imwrite("debug_pic.png", roi)
+        # cv2.imshow("test", roi)
+        # cv2.waitKey(0)
 
         print("----------")
         
 
     #Sets dir_vec to point outwards from polygon
-    if(IsInsidePolygon(new_origin + dir_vec, points)):
+    if(IsInsidePolygon(new_origin_pos + dir_vec, points)):
         dir_vec *= -1
         print("BBB")
     else:
         print("AAA")
 
     #Sets dir_vec to point inwards if the new_origin is not in the actual shape
-    if(roi[new_origin[0], new_origin[1]] == 0):
+    if(roi[new_origin_pixel[0], new_origin_pixel[1]] == 0):
         dir_vec *= -1
         #NOT THE ISSUE
         # print(dir_vec, new_origin, len(points))
 
-    return new_origin, dir_vec
+    return new_origin_pixel, dir_vec
 
 
 def ProcessRegion(roi, num_divides, output_name):
@@ -192,10 +207,10 @@ def Main(img_path, num_divides, ignored_cells, min_bb_area):
             
 
 if __name__ == "__main__":
-    img_path = "test_files\\red_circle.png"
+    img_path = "test_files\\red_ring.png"
 
     #Options for flood fill
-    num_divides = 2
+    num_divides = 10
     ignored_cells = [[255,255,255]]
     min_bb_area = 25
 
