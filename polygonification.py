@@ -39,45 +39,36 @@ def CreateNewPoint(origin, dir_vec, roi):
 def IsInsidePolygon(pos, points):
     num_intersects = 0
     eps = .00001
-    print("IS INSIDE POLYGON------")
-    print(pos)
+    y_pos = pos[0] + eps
+    x_pos = pos[1]
     for p_idx in range(-1, len(points) - 1):
         p1 = points[p_idx][0]
         p2 = points[p_idx + 1][0]
 
-        #Special Case Of Being On Same Level As A Point
-        if(pos[0] == p1[0] or pos[0] == p2[0]):
-            pos[0] += eps
-            print("ADDED EPSILON")
-
         #Checks that pos is to between p1 and p2 on the y axis, and left to at least one of the points
-        if(not ((p1[0] <= pos[0] <= p2[0] or p2[0] <= pos[0] <= p1[0]) and (pos[1] <= p1[1] or pos[1] <= p2[1]))):
+        if(not ((p1[0] <= y_pos <= p2[0] or p2[0] <= y_pos <= p1[0]) and (x_pos <= p1[1] or x_pos <= p2[1]))):
             continue
         
         #Checks Vertical and Horizontal Lines
         if(p1[0] == p2[0]):
-            if(p1[1] <= pos[1] <= p2[1] or p2[1] <= pos[1] <= p1[1]):
+            if((p1[1] <= x_pos <= p2[1] or p2[1] <= x_pos <= p1[1])):
                 return True #On the line
             continue
         elif(p1[1] == p2[1]):
-            if(pos[1] == p1[1]):
+            if(x_pos == p1[1]):
                 return True #On the line
             num_intersects += 1
-            print("INTERSECTION TYPE 2 ", p1, p2)
             continue
 
         m = (p1[0] - p2[0]) / (p1[1] - p2[1])
         b = p1[0] - m * p1[1]
-        x_calculated = (pos[0] - b) / m
-        print(x_calculated, p1, p2, "OH MY")
+        x_calculated = (y_pos - b) / m
+
         #Return true if on the line
-        if(pos[1] == x_calculated):
+        if(x_pos == x_calculated):
             return True
-        elif(pos[1] < x_calculated):
-            print(p1, p2, "INTERSECT")
+        elif(x_pos < x_calculated):
             num_intersects += 1
-    print(num_intersects)
-    print("ISOUTISE------")
     return (num_intersects % 2) == 1
 
 #creates the initial triangle and returns a list of 3 points and their respective ids
@@ -166,6 +157,7 @@ def ProcessRegion(roi, num_divides, output_name):
             new_id += 1
             p_idx += 2
     points.sort(key = lambda x: x[1])
+    DebugPoints(points, roi)
     WriteToOutput(output_name, points, triangles)
 
 def WriteToOutput(file_name, points, triangles):
@@ -176,7 +168,15 @@ def WriteToOutput(file_name, points, triangles):
         for t in triangles:
             line = "f " + str(t[0]) + " " + str(t[1]) + " " + str(t[2]) + "\n"
             f.write(line)
-            
+
+def DebugPoints(points, roi):
+    for p in points:
+        pos = p[0]
+        roi[pos[0], pos[1]] = 127
+    cv2.imwrite("debug_pic.png", roi)
+    cv2.imshow("test", roi)
+    cv2.waitKey(0)
+    
 
 def Main(img_path, num_divides, ignored_cells, min_bb_area):
     #Image variables
