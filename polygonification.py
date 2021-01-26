@@ -11,7 +11,8 @@ def GetRandomPoint(roi):
 #picks starting pixel from several options
 def GetStartingPoint(roi, option=None):
     origin = GetRandomPoint(roi)
-    return np.array([8,37])
+    print("ORIGIN ", origin)
+    return np.array([11,27])
     return origin
 
 def CreateNewPoint(origin, dir_vec, roi):
@@ -37,19 +38,21 @@ def CreateNewPoint(origin, dir_vec, roi):
 
 def IsInsidePolygon(pos, points):
     num_intersects = 0
+    eps = .00001
     print("IS INSIDE POLYGON------")
+    print(pos)
     for p_idx in range(-1, len(points) - 1):
         p1 = points[p_idx][0]
         p2 = points[p_idx + 1][0]
 
+        #Special Case Of Being On Same Level As A Point
+        if(pos[0] == p1[0] or pos[0] == p2[0]):
+            pos[0] += eps
+            print("ADDED EPSILON")
+
         #Checks that pos is to between p1 and p2 on the y axis, and left to at least one of the points
         if(not ((p1[0] <= pos[0] <= p2[0] or p2[0] <= pos[0] <= p1[0]) and (pos[1] <= p1[1] or pos[1] <= p2[1]))):
             continue
-
-        #Checks if new point is equal to an existing point
-        if(np.all(pos == p1)):
-            #TODO, don't add new point
-            return True
         
         #Checks Vertical and Horizontal Lines
         if(p1[0] == p2[0]):
@@ -60,24 +63,17 @@ def IsInsidePolygon(pos, points):
             if(pos[1] == p1[1]):
                 return True #On the line
             num_intersects += 1
+            print("INTERSECTION TYPE 2 ", p1, p2)
             continue
 
         m = (p1[0] - p2[0]) / (p1[1] - p2[1])
         b = p1[0] - m * p1[1]
         x_calculated = (pos[0] - b) / m
+        print(x_calculated, p1, p2, "OH MY")
         #Return true if on the line
         if(pos[1] == x_calculated):
             return True
         elif(pos[1] < x_calculated):
-            if(x_calculated == p1[1]):
-                p_prev = points[p_idx - 1][0]
-                if(p_prev[0] <= pos[0] <= p2[0] or p2[0] <= pos[0] <= p_prev[0]):
-                    num_intersects += 1
-                continue
-            elif(x_calculated == p2[1]):
-                continue
-
-
             print(p1, p2, "INTERSECT")
             num_intersects += 1
     print(num_intersects)
@@ -123,19 +119,19 @@ def GetNewOriginAndDir(points, p_idx1, p_idx2, roi):
         roi[meme1[0], meme1[1]] = 127
         roi[meme2[0], meme2[1]] = 127
         roi[new_origin_pixel[0], new_origin_pixel[1]] = 50
-        # cv2.imwrite("debug_pic.png", roi)
-        # cv2.imshow("test", roi)
-        # cv2.waitKey(0)
+        cv2.imwrite("debug_pic.png", roi)
+        cv2.imshow("test", roi)
+        cv2.waitKey(0)
 
-        print("----------")
+        # print("----------")
         
 
     #Sets dir_vec to point outwards from polygon
     if(IsInsidePolygon(new_origin_pos + dir_vec, points)):
         dir_vec *= -1
-        print("BBB")
-    else:
-        print("AAA")
+    #     print("BBB")
+    # else:
+    #     print("AAA")
 
     #Sets dir_vec to point inwards if the new_origin is not in the actual shape
     if(roi[new_origin_pixel[0], new_origin_pixel[1]] == 0):
@@ -147,16 +143,28 @@ def GetNewOriginAndDir(points, p_idx1, p_idx2, roi):
 
 
 def ProcessRegion(roi, num_divides, output_name):
-    points, triangles = CreateStartingTriangle(roi)
+    explored_pixels = {}
+    points, triangles = CreateStartingTriangle(roi) #edge case of picking same pixel TODO
     new_id = 4 #Point ID
     for div_idx in range(num_divides):
-        for p_idx in range(-1, (len(points) * 2) - 1, 2):
+        p_idx = -1
+        while p_idx < (len(points) - 1):
             new_origin, dir_vec = GetNewOriginAndDir(points, p_idx, p_idx + 1, roi)
             new_point = CreateNewPoint(new_origin, dir_vec, roi)
+
+            new_point_key = new_point.tobytes()
+            if(new_point_key in explored_pixels):
+                p_idx += 1
+                # print(new_point)
+                # 1 / 0
+                continue
+            explored_pixels[new_point_key] = True
+            
 
             triangles.append((points[p_idx][1], points[p_idx + 1][1], new_id))
             points.insert(p_idx + 1, (new_point, new_id))
             new_id += 1
+            p_idx += 2
     points.sort(key = lambda x: x[1])
     WriteToOutput(output_name, points, triangles)
 
@@ -207,10 +215,10 @@ def Main(img_path, num_divides, ignored_cells, min_bb_area):
             
 
 if __name__ == "__main__":
-    img_path = "test_files\\red_ring.png"
+    img_path = "test_files\\red_MA.png"
 
     #Options for flood fill
-    num_divides = 10
+    num_divides = 8
     ignored_cells = [[255,255,255]]
     min_bb_area = 25
 
