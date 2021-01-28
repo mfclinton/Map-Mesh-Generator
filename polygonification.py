@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+import triangle as tr
 
 #Fetches a random pixel
 def GetRandomPoint(roi):
@@ -12,7 +13,7 @@ def GetRandomPoint(roi):
 def GetStartingPoint(roi, option=None):
     origin = GetRandomPoint(roi)
     print("ORIGIN ", origin)
-    return np.array([11,27])
+    # return np.array([385, 193])
     return origin
 
 def CreateNewPoint(origin, dir_vec, roi):
@@ -41,6 +42,7 @@ def IsInsidePolygon(pos, points):
     eps = .00001
     y_pos = pos[0] + eps
     x_pos = pos[1]
+    # print("Inside Polygon Check at ", pos)
     for p_idx in range(-1, len(points) - 1):
         p1 = points[p_idx][0]
         p2 = points[p_idx + 1][0]
@@ -69,6 +71,7 @@ def IsInsidePolygon(pos, points):
             return True
         elif(x_pos < x_calculated):
             num_intersects += 1
+    # print("Num Intersections : ", num_intersects)
     return (num_intersects % 2) == 1
 
 #creates the initial triangle and returns a list of 3 points and their respective ids
@@ -95,40 +98,32 @@ def GetNewOriginAndDir(points, p_idx1, p_idx2, roi):
         dir_vec =  np.array([- (p2[1] - p1[1]) / (p2[0] - p1[0]), 1])
         dir_vec /= np.linalg.norm(dir_vec, ord=1)
 
-    if(IsInsidePolygon(new_origin_pos + dir_vec, points) == IsInsidePolygon(new_origin_pos - dir_vec, points)):
-        print("----------")
-        print("WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
-        print(points, new_origin_pos + dir_vec)
-        print(p1, p2)
-        print(new_origin_pos, dir_vec)
-        for p in points:
-            roi[p[0][0],p[0][1]] = 180
+    # if(IsInsidePolygon(new_origin_pos + dir_vec, points) == IsInsidePolygon(new_origin_pos - dir_vec, points)):
+    #     print("----------")
+    #     print(new_origin_pos + dir_vec)
+    #     print(p1, p2)
+    #     print(new_origin_pos, dir_vec)
+    #     for p in points:
+    #         roi[p[0][0],p[0][1]] = 180
 
-        meme1 = np.rint(new_origin_pos + dir_vec).astype(int)
-        meme2 = np.rint(new_origin_pos - dir_vec).astype(int)
-        print(meme1, meme2)
-        roi[meme1[0], meme1[1]] = 127
-        roi[meme2[0], meme2[1]] = 127
-        roi[new_origin_pixel[0], new_origin_pixel[1]] = 50
-        cv2.imwrite("debug_pic.png", roi)
-        cv2.imshow("test", roi)
-        cv2.waitKey(0)
-
-        # print("----------")
+    #     meme1 = np.rint(new_origin_pos + dir_vec).astype(int)
+    #     meme2 = np.rint(new_origin_pos - dir_vec).astype(int)
+    #     print(meme1, meme2)
+    #     roi[meme1[0], meme1[1]] = 127
+    #     roi[meme2[0], meme2[1]] = 127
+    #     roi[new_origin_pixel[0], new_origin_pixel[1]] = 50
+    #     cv2.imwrite("debug_pic.png", roi)
+    #     cv2.imshow("test", roi)
+    #     cv2.waitKey(0)
         
 
     #Sets dir_vec to point outwards from polygon
     if(IsInsidePolygon(new_origin_pos + dir_vec, points)):
         dir_vec *= -1
-    #     print("BBB")
-    # else:
-    #     print("AAA")
 
     #Sets dir_vec to point inwards if the new_origin is not in the actual shape
     if(roi[new_origin_pixel[0], new_origin_pixel[1]] == 0):
         dir_vec *= -1
-        #NOT THE ISSUE
-        # print(dir_vec, new_origin, len(points))
 
     return new_origin_pixel, dir_vec
 
@@ -146,8 +141,6 @@ def ProcessRegion(roi, num_divides, output_name):
             new_point_key = new_point.tobytes()
             if(new_point_key in explored_pixels):
                 p_idx += 1
-                # print(new_point)
-                # 1 / 0
                 continue
             explored_pixels[new_point_key] = True
             
@@ -156,10 +149,56 @@ def ProcessRegion(roi, num_divides, output_name):
             points.insert(p_idx + 1, (new_point, new_id))
             new_id += 1
             p_idx += 2
-    points.sort(key = lambda x: x[1])
-    DebugPoints(points, roi)
-    WriteToOutput(output_name, points, triangles)
 
+    merged_points = MergePoints(points)
+    print("Num Points : ", len(points))
+    print("Num Merged Points : ", len(merged_points))
+
+    vertices, segments = DelaunayTriangulate(merged_points)
+    A = dict(vertices=vertices, segments=segments)
+    B = tr.triangulate(A,"p")
+    TriangulationToOBJ(B, output_name)
+
+    # points.sort(key = lambda x: x[1])
+    # DebugPoints(points, roi.copy())
+    # DebugPoints(merged_points, roi.copy())
+    # WriteToOutput(output_name, points, triangles)
+
+def MergePoints(points):
+    merged_points = []
+    first_m = None
+    prev_m = None
+    for p_idx in range(-1, len(points) - 1):
+        p1 = points[p_idx][0]
+        p2 = points[p_idx + 1][0]
+
+        m = (p1[0] - p2[0]) / (p1[1] - p2[1])
+
+        if(prev_m == None):
+            first_m = m
+        
+        if(prev_m != m):
+            merged_points.append(points[p_idx])
+
+        prev_m = m
+
+    if(first_m == prev_m):
+        merged_points.pop(0)
+
+    return merged_points
+
+def DelaunayTriangulate(points):
+    vertices = []
+    segments = []
+    for p_idx in range(0, len(points)):
+        pos = points[p_idx][0]
+        vertices.append((pos[0], pos[1]))
+        segments.append((p_idx, p_idx + 1))
+    segments[-1] = (len(points) - 1, 0)
+    print(segments)
+    return vertices, segments
+
+# ARCHIVED
 def WriteToOutput(file_name, points, triangles):
     with open(file_name, "w") as f:
         for p in points:
@@ -169,10 +208,25 @@ def WriteToOutput(file_name, points, triangles):
             line = "f " + str(t[0]) + " " + str(t[1]) + " " + str(t[2]) + "\n"
             f.write(line)
 
+def TriangulationToOBJ(B, objName):
+    if("vertices" not in B or "triangles" not in B):
+        return
+
+    with open("objs\\{0}.obj".format(objName),"w") as f:
+        for v in B["vertices"]:
+            f.write("v {0} {1} {2}\n".format(v[0],0,v[1]))
+
+        f.write("vn {0} {1} {2}\n".format(0,1,0))
+
+        for t in B["triangles"]:
+            f.write("f {0}//1 {1}//1 {2}//1\n".format(t[0] + 1,t[1] + 1,t[2] + 1))
+
 def DebugPoints(points, roi):
     for p in points:
         pos = p[0]
-        roi[pos[0], pos[1]] = 127
+        if(roi[pos[0], pos[1]] == 121):
+            print("REPEAT", pos)
+        roi[pos[0], pos[1]] = 121
     cv2.imwrite("debug_pic.png", roi)
     cv2.imshow("test", roi)
     cv2.waitKey(0)
@@ -218,7 +272,7 @@ if __name__ == "__main__":
     img_path = "test_files\\red_MA.png"
 
     #Options for flood fill
-    num_divides = 8
+    num_divides = 6
     ignored_cells = [[255,255,255]]
     min_bb_area = 25
 
